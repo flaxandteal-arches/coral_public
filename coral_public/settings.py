@@ -9,6 +9,11 @@ from datetime import datetime, timedelta
 from django.utils.translation import gettext_lazy as _
 
 try:
+    import tomllib
+except ImportError:
+    from pip._vendor import tomli as tomllib
+
+try:
     from arches.settings import *
 except ImportError:
     pass
@@ -143,6 +148,7 @@ INSTALLED_APPS = (
     "django_celery_results",
     # "silk",
     "coral_public",  # Ensure the project is listed before any other arches applications
+    "arches_orm.arches_django.apps.ArchesORMConfig",
 )
 
 # Placing this last ensures any templates provided by Arches Applications
@@ -163,6 +169,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "arches.app.utils.middleware.SetAnonymousUser",
+    "arches_orm.arches_django.middleware.ArchesORMContextMiddleware",
     # "silk.middleware.SilkyMiddleware",
 ]
 
@@ -417,6 +424,13 @@ LANGUAGES = [
 
 # override this to permenantly display/hide the language switcher
 SHOW_LANGUAGE_SWITCH = len(LANGUAGES) > 1
+
+try:
+    with (Path(__file__).parent / "wkrm.toml").open("rb") as wkrm_f:
+        WELL_KNOWN_RESOURCE_MODELS = [model for _, model in tomllib.load(wkrm_f).items()]
+except:
+    with (Path(__file__).parent / "wkrm.toml").open("r") as wkrm_f:
+        WELL_KNOWN_RESOURCE_MODELS = [model for _, model in tomllib.load(wkrm_f).items()]
 
 # Implement this class to associate custom documents to the ES resource index
 # See tests.views.search_tests.TestEsMappingModifier class for example
