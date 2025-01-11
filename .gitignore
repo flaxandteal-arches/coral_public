@@ -1,5 +1,6 @@
 *.pyc
 *.log
+.venv
 node_modules
 coverage/
 coral_public/logs
