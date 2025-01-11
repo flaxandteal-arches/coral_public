@@ -1,3 +1,6 @@
 [submodule "docker"]
 	path = docker
 	url = https://github.com/flaxandteal/arches-container-toolkit
+[submodule "coral_public/pkg"]
+	path = coral_public/pkg
+	url = git@github.com:flaxandteal/coral_public-pkg.git

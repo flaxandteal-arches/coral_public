@@ -284,7 +284,7 @@ TILE_CACHE_TIMEOUT = 600  # seconds
 CLUSTER_DISTANCE_MAX = 5000  # meters
 GRAPH_MODEL_CACHE_TIMEOUT = None
 
-OAUTH_CLIENT_ID = ""  #'9JCibwrWQ4hwuGn5fu2u1oRZSs9V6gK8Vu8hpRC4'
+OAUTH_CLIENT_ID = ""  # something like '9JCib....'
 
 APP_TITLE = "Northern Ireland Public Heritage Data Viewer | HED"
 COPYRIGHT_TEXT = "All Rights Reserved."
