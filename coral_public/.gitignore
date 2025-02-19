@@ -1,5 +1,5 @@
 functions/
-datatypes/
+#datatypes/
 media/js/views/components/functions/
 media/js/views/components/widgets/
 templates/views/components/functions/
