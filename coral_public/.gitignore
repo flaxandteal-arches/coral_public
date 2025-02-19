@@ -6,4 +6,4 @@ templates/views/components/functions/
 templates/views/components/widgets/
 system_settings/
 widgets/
-reports/
+#reports/
