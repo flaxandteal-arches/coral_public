@@ -54,6 +54,8 @@ jobs:
           mkdir -p import
           cd import
           tar -xzf ../starches-latest.tgz
+          ls -1
+          ls -1 ./definitions
           cd ..
           for r in business_data graphs reference_data; do echo $r; rsync -rbvu import/definitions/$r coral_public/pkg/; done
           rm -rf starches-latest.tgz import
