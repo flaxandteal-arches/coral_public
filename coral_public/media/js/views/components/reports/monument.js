@@ -7,7 +7,8 @@ define([
     'utils/report',
     'templates/views/components/reports/monument.htm',
     'views/components/reports/scenes/name',
-    'views/components/reports/scenes/json'
+    'views/components/reports/scenes/json',
+    'views/components/reports/scenes/all'
 ], function($, _, ko, arches, resourceUtils, reportUtils, monumentReportTemplate) {
     return ko.components.register('monument-report', {
         viewModel: function(params) {
