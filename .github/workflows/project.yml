@@ -37,28 +37,6 @@ jobs:
         with:
           version: latest
           endpoint: builders
-      # name: Build docker backend image
-      # run: |
-      #   docker build --build-arg ARCHES_BASE=${{ env.ARCHES_BASE }} --build-arg ARCHES_PROJECT=${{ env.ARCHES_PROJECT }} . -t arches_${{ env.ARCHES_PROJECT }}
-      - name: Get latest coral-starches
-        uses: flaxandteal/fork-action-mc@master
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          MC_URL: "http://srv-minio.srv-minio.svc.cluster.local:9000"
-          MC_ALIAS: thebfc
-        with:
-          args: get thebfc/fat-crl-pub-qv/starches-latest.tgz starches-latest.tgz
-      - name: Untar build
-        run: |
-          mkdir -p import
-          cd import
-          tar -xzf ../starches-latest.tgz
-          ls -1
-          ls -1 ./definitions
-          cd ..
-          for r in business_data graphs reference_data; do echo $r; rsync -rbvu import/definitions/$r coral_public/pkg/; done
-          rm -rf starches-latest.tgz import
       - id: auth
         uses: google-github-actions/auth@v1
         with:
@@ -92,147 +70,174 @@ jobs:
         run: |
           name=${{ fromJSON(steps.build.outputs.metadata)['image.name'] }}
           echo "image_name=$name" >> $GITHUB_OUTPUT
-  #Build-Arches-Static:
-  #  runs-on: [self-hosted]
-  #  needs: [Build-Arches]
-  #  permissions:
-  #    packages: write
-  #  outputs:
-  #    image: ${{ steps.extract_image_name.outputs.image_name }}
+  Build-Arches-Static:
+    runs-on: [self-hosted]
+    needs: [Build-Arches]
+    permissions:
+      packages: write
+    outputs:
+      image: ${{ steps.extract_image_name.outputs.image_name }}
 
-  #  steps:
-  #    - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-  #    - name: Check out repository code
-  #      uses: actions/checkout@v3
-  #      with:
-  #        token: ${{ secrets.GITHUB_TOKEN }}
-  #        submodules: 'true'
-  #    # name: Build docker backend image
-  #    # run: |
-  #    #   docker build --build-arg VERSION=feature-ci --build-arg ARCHES_BASE=${{ env.ARCHES_BASE }} --build-arg ARCHES_PROJECT=${{ env.ARCHES_PROJECT }} -f Dockerfile.static . -t arches_${{ env.ARCHES_PROJECT }}_static
-  #    - name: Log in to Github
-  #      uses: docker/login-action@v2
-  #      with:
-  #        registry: ghcr.io
-  #        username: ${{ github.actor }}
-  #        password: ${{ secrets.GITHUB_TOKEN }}
-  #    - name: Set up Docker Context for Buildx
-  #      id: buildx-context
-  #      run: |
-  #        docker context create builders
-  #    - name: Set up Docker Buildx
-  #      uses: docker/setup-buildx-action@v2
-  #      with:
-  #        version: latest
-  #        endpoint: builders
-  #        buildkitd-flags: '--allow-insecure-entitlement network.host'
-  #        driver-opts: |
-  #            network=host
-  #    - name: Build and push Docker image
-  #      run: docker run --rm --network host willwill/wait-for-it -h localhost -p 8000 -t 0
-  #    - name: Extract metadata (tags, labels) for Docker
-  #      id: meta
-  #      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-  #      with:
-  #        images: ghcr.io/${{ github.repository }}_static
-  #    - name: Build and push Docker image
-  #      id: buildx
-  #      uses: docker/build-push-action@v2
-  #      with:
-  #        context: .
-  #        push: true
-  #        file: docker/Dockerfile.static
-  #        network: host
-  #        allow: network.host
-  #        tags: ${{ steps.meta.outputs.tags }}-${{ github.run_id }}
-  #        labels: ${{ steps.meta.outputs.labels }}
-  #        build-args: |
-  #          ARCHES_DYNAMIC_IMAGE=${{ needs['Build-Arches'].outputs.image }}
-  #          ARCHES_ENVIRONMENT=development
-  #          ARCHES_BASE=${{ env.ARCHES_BASE }}
-  #          ARCHES_PROJECT=${{ env.ARCHES_PROJECT }}
-  #          ARCHES_NAMESPACE_FOR_DATA_EXPORT=http://localhost:8000/
-  #    - name: Extract image name
-  #      id: extract_image_name
-  #      run: |
-  #        name=${{ fromJSON(steps.buildx.outputs.metadata)['image.name'] }}
-  #        echo "image_name=$name" >> $GITHUB_OUTPUT
-  #  services:
-  #    elasticsearch:
-  #      image: elasticsearch:8.4.0
-  #      ports:
-  #        - "9200:9200"
-  #        - "9300:9300"
-  #      env:
-  #        TZ: "PST"
-  #        discovery.type: "single-node"
-  #        discovery.seed_hosts: "[]"
-  #        xpack.security.enabled: "false"
-  #        ES_JAVA_OPTS: "-Xms400m -Xmx400m"
-  #      options: >-
-  #        --health-cmd "curl -s --fail http://localhost:9200/_cat/health || exit 1"
-  #        --health-interval 10s
-  #        --health-timeout 5s
-  #        --health-retries 10
-  #    db:
-  #      image: flaxandteal/arches_coral_postgres
-  #      #volumes:
-  #      #    - ${{ github.workspace }}/scripts/init-unix.sql:/docker-entrypoint-initdb.d/init.sql # to set up the DB template
-  #      ports:
-  #        - '5432:5432'
-  #      env:
-  #        POSTGRES_USER: postgres
-  #        POSTGRES_PASS: postgres
-  #        POSTGRES_DB: postgres
-  #        POSTGRES_MULTIPLE_EXTENSIONS: postgis,postgis_topology
-  #        TZ: PST
-  #      options: >-
-  #        --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d postgres"
-  #        --health-interval 10s
-  #        --health-timeout 5s
-  #        --health-retries 20
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: 'true'
+      # name: Build docker backend image
+      # run: |
+      #   docker build --build-arg VERSION=feature-ci --build-arg ARCHES_BASE=${{ env.ARCHES_BASE }} --build-arg ARCHES_PROJECT=${{ env.ARCHES_PROJECT }} -f Dockerfile.static . -t arches_${{ env.ARCHES_PROJECT }}_static
+      - name: Set up Docker Context for Buildx
+        id: buildx-context
+        run: |
+          docker context create builders
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+          endpoint: builders
+          buildkitd-flags: '--allow-insecure-entitlement network.host'
+          driver-opts: |
+              network=host
+      # name: Build docker backend image
+      # run: |
+      #   docker build --build-arg ARCHES_BASE=${{ env.ARCHES_BASE }} --build-arg ARCHES_PROJECT=${{ env.ARCHES_PROJECT }} . -t arches_${{ env.ARCHES_PROJECT }}
+      - name: Get latest coral-starches
+        uses: flaxandteal/fork-action-mc@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          MC_URL: "http://srv-minio.srv-minio.svc.cluster.local:9000"
+          MC_ALIAS: thebfc
+        with:
+          args: get thebfc/fat-crl-pub-qv/starches-latest.tgz starches-latest.tgz
+      - name: Untar build
+        run: |
+          mkdir -p import
+          cd import
+          tar -xzf ../starches-latest.tgz
+          ls -1
+          ls -1 ./definitions
+          cd ..
+          for r in business_data graphs reference_data; do echo $r; rsync -rbvu import/definitions/$r coral_public/pkg/; done
+          rm -rf starches-latest.tgz import
+      - name: Build and push Docker image
+        run: docker run --rm --network host willwill/wait-for-it -h localhost -p 8000 -t 0
+      - id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      - name: Use gcloud CLI
+        run: gcloud info
+      - name: Docker auth
+        run: |-
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.GAR_LOCATION }}/coral-public_static
+      - name: Build and push Docker image
+        id: buildx
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          file: docker/Dockerfile.static
+          network: host
+          allow: network.host
+          tags: ${{ steps.meta.outputs.tags }}-${{ github.run_id }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ARCHES_DYNAMIC_IMAGE=${{ needs['Build-Arches'].outputs.image }}
+            ARCHES_ENVIRONMENT=development
+            ARCHES_BASE=${{ env.ARCHES_BASE }}
+            ARCHES_PROJECT=${{ env.ARCHES_PROJECT }}
+            ARCHES_NAMESPACE_FOR_DATA_EXPORT=http://localhost:8000/
+      - name: Extract image name
+        id: extract_image_name
+        run: |
+          name=${{ fromJSON(steps.buildx.outputs.metadata)['image.name'] }}
+          echo "image_name=$name" >> $GITHUB_OUTPUT
+    services:
+      elasticsearch:
+        image: elasticsearch:8.4.0
+        ports:
+          - "9200:9200"
+          - "9300:9300"
+        env:
+          TZ: "PST"
+          discovery.type: "single-node"
+          discovery.seed_hosts: "[]"
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms400m -Xmx400m"
+        options: >-
+          --health-cmd "curl -s --fail http://localhost:9200/_cat/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      db:
+        image: flaxandteal/arches_coral_postgres
+        #volumes:
+        #    - ${{ github.workspace }}/scripts/init-unix.sql:/docker-entrypoint-initdb.d/init.sql # to set up the DB template
+        ports:
+          - '5432:5432'
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASS: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_MULTIPLE_EXTENSIONS: postgis,postgis_topology
+          TZ: PST
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
 
-  #    arches:
-  #      image: "${{ needs['Build-Arches'].outputs.image }}"
-  #      env:
-  #        ALLOW_BOOTSTRAP: "True"
-  #        ARCHES_PROJECT: "${{ env.ARCHES_PROJECT }}"
-  #        ARCHES_ROOT: "/web_root/arches"
-  #        COMPRESS_OFFLINE: "False"
-  #        COMPRESS_ENABLED: "False"
-  #        INSTALL_DEFAULT_GRAPHS: "False"
-  #        INSTALL_DEFAULT_CONCEPTS: "False"
-  #        PGUSERNAME: "postgres"
-  #        PGPASSWORD: "postgres"
-  #        PGDBNAME: "arches"
-  #        PGHOST: "db"
-  #        PGPORT: "5432"
-  #        RABBITMQ_USER: "rabbitmq"
-  #        RABBITMQ_PASS: "rabbitmq"
-  #        CANTALOUPE_HOST: "cantaloupe"
-  #        CANTALOUPE_PORT: "8182"
-  #        COUCHDB_HOST: "couchdb"
-  #        COUCHDB_PORT: "5984"
-  #        COUCHDB_USER: "admin"
-  #        COUCHDB_PASS: "password"
-  #        ESHOST: "elasticsearch"
-  #        ESPORT: "9200"
-  #        CELERY_BROKER_URL: "amqp://rabbitmq"
-  #        DJANGO_MODE: "DEV"
-  #        DJANGO_DEBUG: "True"
-  #        DOMAIN_NAMES: "localhost"
-  #        PYTHONUNBUFFERED: "0"
-  #        STATIC_URL: "/static/"
-  #        STATIC_ROOT: "/static_root"
-  #        WEB_ROOT: "/web_root"
-  #        TZ: "PST"
-  #      ports:
-  #        - '8000:8000'
-  #      options: >-
-  #        --health-cmd "curl --fail http://localhost:8000/templates/views/components/language-switcher.htm || exit 1"
-  #        --health-interval 10s
-  #        --health-timeout 5s
-  #        --health-retries 1000
+      arches:
+        image: "${{ needs['Build-Arches'].outputs.image }}"
+        env:
+          ALLOW_BOOTSTRAP: "True"
+          ARCHES_PROJECT: "${{ env.ARCHES_PROJECT }}"
+          ARCHES_ROOT: "/web_root/arches"
+          COMPRESS_OFFLINE: "False"
+          COMPRESS_ENABLED: "False"
+          INSTALL_DEFAULT_GRAPHS: "False"
+          INSTALL_DEFAULT_CONCEPTS: "False"
+          PGUSERNAME: "postgres"
+          PGPASSWORD: "postgres"
+          PGDBNAME: "arches"
+          PGHOST: "db"
+          PGPORT: "5432"
+          RABBITMQ_USER: "rabbitmq"
+          RABBITMQ_PASS: "rabbitmq"
+          CANTALOUPE_HOST: "cantaloupe"
+          CANTALOUPE_PORT: "8182"
+          COUCHDB_HOST: "couchdb"
+          COUCHDB_PORT: "5984"
+          COUCHDB_USER: "admin"
+          COUCHDB_PASS: "password"
+          ESHOST: "elasticsearch"
+          ESPORT: "9200"
+          CELERY_BROKER_URL: "amqp://rabbitmq"
+          DJANGO_MODE: "DEV"
+          DJANGO_DEBUG: "True"
+          DOMAIN_NAMES: "localhost"
+          PYTHONUNBUFFERED: "0"
+          STATIC_URL: "/static/"
+          STATIC_ROOT: "/static_root"
+          WEB_ROOT: "/web_root"
+          TZ: "PST"
+        ports:
+          - '8000:8000'
+        options: >-
+          --health-cmd "curl --fail http://localhost:8000/templates/views/components/language-switcher.htm || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 1000
   #Build-Arches-Final:
   #  needs: [Build-Arches-Static, Build-Arches]
   #  runs-on: [self-hosted]
